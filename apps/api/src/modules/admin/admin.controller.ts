@@ -1,6 +1,7 @@
 import {
   Controller,
   Get,
+  Post,
   Patch,
   Body,
   Param,
@@ -66,5 +67,14 @@ export class AdminController {
   @ApiOperation({ summary: 'Consulter le journal d\'audit des actions sensibles' })
   async getAuditLogs(@Query('limit') limit?: number) {
     return this.adminService.getAuditLogs(limit ? Number(limit) : 30);
+  }
+
+  @Post('scraper/import')
+  @ApiOperation({ summary: 'Lancer la collecte automatique d\'offres sur le web tunisien (Web Scraping)' })
+  async runWebScraper(
+    @CurrentUser('id') adminUserId: string,
+    @Body('count') count?: number,
+  ) {
+    return this.adminService.runWebScraperImport(adminUserId, count || 4);
   }
 }

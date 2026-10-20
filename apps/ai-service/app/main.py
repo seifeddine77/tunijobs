@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
-from app.routers import cv_parser, matcher, embeddings, assistant, rag
+from app.routers import cv_parser, matcher, embeddings, assistant, rag, scraper
 
 app = FastAPI(
     title="TuniJobs AI Service",
@@ -26,6 +26,7 @@ app.include_router(matcher.router)
 app.include_router(embeddings.router)
 app.include_router(assistant.router)
 app.include_router(rag.router)
+app.include_router(scraper.router)
 
 @app.get("/health")
 def healthcheck():

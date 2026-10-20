@@ -1,4 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import slugify from 'slugify';
+import { TUNISIAN_GOVERNORATES } from '@tunijobs/shared-types';
 import { PrismaService } from '../prisma/prisma.service';
 import { ReviewCompanyDto, UserActionDto, AdminUserAction } from './dto/admin.dto';
 import { CompanyStatus, UserRole, OfferStatus } from '@prisma/client';
@@ -182,5 +184,83 @@ export class AdminService {
       orderBy: { createdAt: 'desc' },
       take: limit,
     });
+  }
+
+  async runWebScraperImport(adminUserId: string, count: number = 4) {
+    const aiUrl = process.env.AI_SERVICE_URL || 'http://localhost:8000';
+    const scraperRes = await fetch(`${aiUrl}/ai/scraper/run-batch`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ count }),
+    });
+
+    if (!scraperRes.ok) {
+      throw new BadRequestException('Erreur lors de la collecte automatique web');
+    }
+
+    const { jobs } = await scraperRes.json();
+    const importedJobs = [];
+
+    let partnerCompany = await this.prisma.company.findFirst({
+      where: { name: 'Partenaires Emploi Tunisie (Web)' },
+    });
+
+    if (!partnerCompany) {
+      partnerCompany = await this.prisma.company.create({
+        data: {
+          userId: adminUserId,
+          name: 'Partenaires Emploi Tunisie (Web)',
+          taxId: '9999999Z/Z/Z/999',
+          sector: 'Collecte Automatique Web (Keejob / Tanitjobs)',
+          size: 'Portail National',
+          description: 'Offres indexées automatiquement via le scraper TuniJobs.',
+          status: 'APPROVED',
+        },
+      });
+    }
+
+    for (const item of jobs) {
+      const slug = `${slugify(item.title, { lower: true, strict: true })}-${Math.random().toString(36).substring(2, 7)}`;
+      const govCode = item.governorate_code || '11';
+      const govInfo =
+        TUNISIAN_GOVERNORATES.find((g) => g.code === govCode) ||
+        TUNISIAN_GOVERNORATES[0];
+
+      const job = await this.prisma.jobOffer.create({
+        data: {
+          companyId: partnerCompany.id,
+          title: `[Web] ${item.title} — ${item.company}`,
+          slug,
+          description: item.description,
+          requirements: item.requirements,
+          contractType: item.contract_type,
+          workMode: item.work_mode,
+          salaryMin: item.salary_min,
+          salaryMax: item.salary_max,
+          currency: item.currency || 'TND',
+          governorateCode: govCode,
+          latitude: govInfo.centerLat,
+          longitude: govInfo.centerLng,
+          status: OfferStatus.PUBLISHED,
+          expiresAt: new Date(Date.now() + 30 * 24 * 3600 * 1000),
+        },
+      });
+      importedJobs.push(job);
+    }
+
+    await this.prisma.auditLog.create({
+      data: {
+        userId: adminUserId,
+        action: 'WEB_SCRAPER_RUN',
+        resource: 'JobOffer',
+        details: { importedCount: importedJobs.length },
+      },
+    });
+
+    return {
+      success: true,
+      importedCount: importedJobs.length,
+      jobs: importedJobs,
+    };
   }
 }
