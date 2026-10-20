@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import * as maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { LocateFixed, RefreshCw, ZoomIn, ZoomOut, Layers } from 'lucide-react';
+import { TUNISIAN_GOVERNORATES } from '@tunijobs/shared-types';
 
 interface TunisiaMapProps {
   selectedGovCode?: string;
@@ -26,6 +27,7 @@ export function TunisiaMap({
 }: TunisiaMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
+  const activeMarkerRef = useRef<maplibregl.Marker | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [showChoropleth, setShowChoropleth] = useState(true);
@@ -328,6 +330,66 @@ export function TunisiaMap({
       mapRef.current.setPaintProperty('governorates-fill', 'fill-opacity', showChoropleth ? 0.45 : 0.05);
     }
   }, [choroplethData, showChoropleth, mapLoaded]);
+
+  // Centrage et affichage du cercle interactif d'offres au clic sur un gouvernorat
+  useEffect(() => {
+    if (!mapRef.current || !mapLoaded) return;
+
+    if (!selectedGovCode) {
+      if (activeMarkerRef.current) {
+        activeMarkerRef.current.remove();
+        activeMarkerRef.current = null;
+      }
+      return;
+    }
+
+    const gov = TUNISIAN_GOVERNORATES.find((g) => g.code === selectedGovCode);
+    if (!gov) return;
+
+    const count = choroplethData[selectedGovCode] || 0;
+
+    // Centrage fluide vers le gouvernorat
+    mapRef.current.flyTo({
+      center: [gov.centerLng, gov.centerLat],
+      zoom: 10,
+      essential: true,
+    });
+
+    if (activeMarkerRef.current) {
+      activeMarkerRef.current.remove();
+    }
+
+    // Création de l'élément cercle visuel animé avec les offres
+    const el = document.createElement('div');
+    el.className = 'tunijobs-gov-circle-marker';
+    el.innerHTML = `
+      <div style="position: relative; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+        <div style="position: absolute; width: 68px; height: 68px; background-color: #3b82f6; border-radius: 9999px; opacity: 0.4; animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;"></div>
+        <div style="position: relative; width: 54px; height: 54px; background: linear-gradient(135deg, #1d4ed8, #4338ca); border: 3px solid #ffffff; border-radius: 9999px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3); display: flex; flex-direction: column; align-items: center; justify-content: center; color: white;">
+          <span style="font-size: 16px; font-weight: 900; line-height: 1;">${count}</span>
+          <span style="font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">offre${count > 1 ? 's' : ''}</span>
+        </div>
+        <div style="position: absolute; bottom: -24px; background-color: #0f172a; color: #ffffff; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 6px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); white-space: nowrap; border: 1px solid #334155;">
+          📍 ${gov.nameFr} (${gov.nameAr})
+        </div>
+      </div>
+    `;
+
+    const markerPopup = new maplibregl.Popup({ offset: 25 }).setHTML(`
+      <div style="padding: 10px; font-family: sans-serif; min-width: 200px;">
+        <h4 style="font-weight: 800; font-size: 14px; color: #0f172a; margin: 0 0 4px 0;">🇹🇳 ${gov.nameFr} (${gov.nameAr})</h4>
+        <p style="font-size: 12px; color: #475569; margin: 0 0 8px 0;">Région ${gov.region} · <b style="color: #2563eb;">${count} opportunité(s)</b></p>
+        <p style="font-size: 11px; color: #16a34a; font-weight: 600; margin: 0;">✓ Cliquez pour ouvrir le volet détaillé</p>
+      </div>
+    `);
+
+    const marker = new maplibregl.Marker({ element: el })
+      .setLngLat([gov.centerLng, gov.centerLat])
+      .setPopup(markerPopup)
+      .addTo(mapRef.current);
+
+    activeMarkerRef.current = marker;
+  }, [selectedGovCode, choroplethData, mapLoaded]);
 
   // Centrage si sélection d'un gouvernorat ou focus d'offre
   useEffect(() => {

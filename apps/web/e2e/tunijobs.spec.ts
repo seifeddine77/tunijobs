@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('TuniJobs - Plateforme de Recrutement Intelligente', () => {
+test.describe('TuniJobs - Validation Intégrale de Toutes les Pages & Notifications', () => {
 
-  test('1. Page d\'accueil et navigation globale', async ({ page }) => {
+  test('1. Page d\'accueil et navigation globale (/)', async ({ page }) => {
     await page.goto('/');
     await expect(page).toHaveTitle(/TuniJobs/);
 
@@ -32,45 +32,50 @@ test.describe('TuniJobs - Plateforme de Recrutement Intelligente', () => {
     await expect(page.locator('h3:has-text("Filtres de recherche")')).toBeVisible();
   });
 
-  test('3. Détail d\'une offre et score IA explicable', async ({ page }) => {
+  test('3. Détail d\'une offre, salaire TND et score IA (/offres/[slug])', async ({ page }) => {
     await page.goto('/offres/architecte-cloud-aws-and-devops-11-vnz1n');
 
     // Vérifier le titre de l'offre
     await expect(page.locator('h1')).toContainText('Architecte Cloud AWS & DevOps');
 
-    // Vérifier la présence de l'entreprise et gouvernorat
+    // Vérifier l'entreprise et la devise
     await expect(page.locator('h4', { hasText: 'Vermeg Tunisie' })).toBeVisible();
     await expect(page.locator('text=Tunis').first()).toBeVisible();
-
-    // Vérifier la devise en TND
     await expect(page.locator('text=TND').first()).toBeVisible();
 
     // Vérifier le bouton pour postuler en 1 clic
     await expect(page.locator('button:has-text("Postuler en 1 clic")')).toBeVisible();
 
-    // Vérifier les métadonnées SEO JobPosting JSON-LD
+    // Vérifier les métadonnées SEO Schema.org JobPosting
     const jsonLdScript = await page.locator('script[type="application/ld+json"]').textContent();
     expect(jsonLdScript).toContain('JobPosting');
     expect(jsonLdScript).toContain('Vermeg Tunisie');
   });
 
-  test('4. Carte interactive de la Tunisie (/carte)', async ({ page }) => {
+  test('4. Carte interactive avec cercles d\'offres au clic (/carte)', async ({ page }) => {
     await page.goto('/carte');
 
-    // Vérifier le badge d'instruction de la carte
+    // Vérifier l'instruction de la carte
     await expect(
       page.locator('text=Cliquez sur l\'un des 24 gouvernorats pour explorer les offres locales')
     ).toBeVisible();
 
     // Vérifier les boutons d'outils cartographiques
     await expect(page.locator('button:has-text("Près de moi")')).toBeVisible();
+    await expect(page.locator('button:has-text("Choroplèthe")')).toBeVisible();
+
+    // Vérifier la présence du canvas MapLibre
+    await expect(page.locator('canvas.maplibregl-canvas')).toBeVisible({ timeout: 10000 });
   });
 
-  test('5. Analyseur intelligent de CV avec IA (/ia-cv)', async ({ page }) => {
+  test('5. Module IA avec OCR de CV (/ia-cv)', async ({ page }) => {
     await page.goto('/ia-cv');
 
     // Vérifier l'en-tête du module IA
     await expect(page.locator('h1')).toContainText('Diagnostic IA de votre CV');
+
+    // Vérifier la présence du bouton d'import OCR
+    await expect(page.locator('text=Importer CV (PDF/Image OCR)')).toBeVisible();
 
     // Remplir la zone de texte avec un profil tunisien réaliste
     const cvInput = page.locator('textarea');
@@ -92,7 +97,49 @@ Expérience: 5 ans en conception d'infrastructures hautement disponibles et séc
     await expect(page.locator('text=Étape 2 · Recommandations personnalisées')).toBeVisible({ timeout: 15000 });
   });
 
-  test('6. Pipeline Recruteur et tableau Kanban (/recruteur/pipeline)', async ({ page }) => {
+  test('6. Assistant RAG Intelligent en langage naturel (/ia-cv - Onglet RAG)', async ({ page }) => {
+    await page.goto('/ia-cv');
+
+    // Basculer vers l'onglet RAG
+    const ragTabBtn = page.locator('button:has-text("Assistant RAG Tunisie")');
+    await expect(ragTabBtn).toBeVisible();
+    await ragTabBtn.click();
+
+    // Vérifier l'en-tête de l'assistant RAG
+    await expect(page.locator('text=Interrogez le marché de l\'emploi en langage naturel (RAG)')).toBeVisible();
+
+    // Poser une question au RAG via les suggestions
+    const suggestionBtn = page.locator('button:has-text("Quels postes DevOps ou Cloud sont disponibles à Tunis ?")');
+    await expect(suggestionBtn).toBeVisible();
+    await suggestionBtn.click();
+
+    // Attendre la réponse synthétisée avec les sources documentaires
+    await expect(page.locator('text=Réponse synthétisée par RAG')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('text=Sources documentaires extraites')).toBeVisible();
+  });
+
+  test('7. Suivi des candidatures du candidat (/candidat/candidatures)', async ({ page }) => {
+    await page.goto('/candidat/candidatures');
+
+    // Vérifier l'en-tête de l'espace candidat
+    await expect(page.locator('h1')).toContainText('Suivi de mes candidatures');
+
+    // Vérifier les boutons d'onglets de filtres et la liste des candidatures
+    await expect(page.locator('button:has-text("Toutes")')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('text=Vermeg Tunisie').first()).toBeVisible({ timeout: 10000 });
+  });
+
+  test('8. Centre de notifications en temps réel BullMQ (/notifications)', async ({ page }) => {
+    await page.goto('/notifications');
+
+    // Vérifier la présence du centre de notifications
+    await expect(page.locator('h1')).toContainText('Centre de notifications');
+
+    // Vérifier le bouton de marquage
+    await expect(page.locator('button:has-text("Tout marquer comme lu")')).toBeVisible();
+  });
+
+  test('9. Pipeline Recruteur et tableau Kanban (/recruteur/pipeline)', async ({ page }) => {
     await page.goto('/recruteur/pipeline');
 
     // Vérifier l'espace recruteur
@@ -111,7 +158,7 @@ Expérience: 5 ans en conception d'infrastructures hautement disponibles et séc
     await expect(page.locator('span:has-text("Refusées")').first()).toBeVisible();
   });
 
-  test('7. Espace Administrateur et conformité RNE (/admin)', async ({ page }) => {
+  test('10. Espace Administrateur, modération RNE et audit logs (/admin)', async ({ page }) => {
     await page.goto('/admin');
 
     // Vérifier le tableau de bord administrateur

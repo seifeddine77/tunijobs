@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 
 class PersonalInfo(BaseModel):
     first_name: Optional[str] = Field(None, description="Prénom extrait")
@@ -31,3 +31,4 @@ class CVStructure(BaseModel):
     experiences: List[ExperienceItem] = Field(default_factory=list)
     languages: List[str] = Field(default_factory=list, description="Langues maîtrisées (Français, Arabe, Anglais...)")
     raw_text: Optional[str] = None
+    ocr_metadata: Optional[Dict[str, Any]] = Field(None, description="Métadonnées d'extraction OCR (si document scanné ou image)")
