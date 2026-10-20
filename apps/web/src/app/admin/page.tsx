@@ -17,6 +17,7 @@ import {
   MapPin,
   Sparkles,
   AlertTriangle,
+  Globe,
 } from 'lucide-react';
 import { TUNISIAN_GOVERNORATES } from '@tunijobs/shared-types';
 
@@ -28,6 +29,8 @@ export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [adminToken, setAdminToken] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'COMPANIES' | 'USERS' | 'AUDIT'>('OVERVIEW');
+  const [scraping, setScraping] = useState(false);
+  const [scrapeResult, setScrapeResult] = useState<{ count: number; message: string } | null>(null);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
 
@@ -95,6 +98,37 @@ export default function AdminDashboardPage() {
       }
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  // Collecte automatisée d'offres d'emploi Web (Scraper)
+  const handleRunScraper = async () => {
+    setScraping(true);
+    setScrapeResult(null);
+    try {
+      const res = await fetch(`${API_URL}/admin/scraper/import`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${adminToken}`,
+        },
+        body: JSON.stringify({ count: 4 }),
+      });
+
+      if (!res.ok) {
+        throw new Error('Erreur lors de la collecte d\'offres');
+      }
+
+      const data = await res.json();
+      setScrapeResult({
+        count: data.importedCount,
+        message: `${data.importedCount} offres collectées et insérées avec succès dans la base PostgreSQL !`,
+      });
+      await loadAdminData(adminToken);
+    } catch (err: any) {
+      alert(err.message || 'Erreur lors de la collecte');
+    } finally {
+      setScraping(false);
     }
   };
 
@@ -304,6 +338,55 @@ export default function AdminDashboardPage() {
                   <p className="text-xs text-slate-400">Aucune donnée de compétences pour l'instant</p>
                 )}
               </div>
+            </div>
+
+            {/* COLLECTE AUTOMATIQUE WEB (SCRAPER IA) */}
+            <div className="bg-gradient-to-br from-slate-900 to-blue-950 text-white p-6 rounded-2xl shadow-md space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="p-2 rounded-xl bg-blue-600/30 border border-blue-400/30 text-blue-400">
+                    <Globe className="w-5 h-5" />
+                  </span>
+                  <div>
+                    <h4 className="font-bold text-sm text-white">
+                      Collecteur d'Offres Web (Keejob / Tanitjobs)
+                    </h4>
+                    <p className="text-[11px] text-slate-300">
+                      Scraping automatisé et géocodage sur les 24 gouvernorats
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {scrapeResult && (
+                <div className="p-3 bg-emerald-500/20 border border-emerald-400/40 rounded-xl text-emerald-200 text-xs flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+                  <span>{scrapeResult.message}</span>
+                </div>
+              )}
+
+              <p className="text-xs text-slate-300 leading-relaxed">
+                Ce robot extrait les offres récentes, analyse les types de contrats tunisiens (SIVP, Karama, CDI), extrait les compétences ESCO et géoréférence chaque poste.
+              </p>
+
+              <button
+                type="button"
+                onClick={handleRunScraper}
+                disabled={scraping}
+                className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow transition flex items-center justify-center gap-2"
+              >
+                {scraping ? (
+                  <>
+                    <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
+                    Collecte et géoréférencement en cours...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4 text-amber-300" />
+                    Lancer la collecte automatique d'offres web
+                  </>
+                )}
+              </button>
             </div>
 
             {/* ALERTE MODÉRATION */}

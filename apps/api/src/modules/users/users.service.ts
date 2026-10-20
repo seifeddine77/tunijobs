@@ -1,6 +1,11 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { UpdateCandidateProfileDto, AddSkillDto } from './dto/update-profile.dto';
+import {
+  UpdateCandidateProfileDto,
+  AddSkillDto,
+  CreateExperienceDto,
+  CreateEducationDto,
+} from './dto/update-profile.dto';
 
 @Injectable()
 export class UsersService {
@@ -54,9 +59,89 @@ export class UsersService {
         currentSalary: dto.currentSalary,
         expectedSalary: dto.expectedSalary,
         preferredGovernorates: dto.preferredGovernorates,
+        cvFileUrl: dto.cvFileUrl,
       },
       include: {
         skills: { include: { skill: true } },
+        educations: true,
+        experiences: true,
+      },
+    });
+  }
+
+  async addExperience(userId: string, dto: CreateExperienceDto) {
+    const profile = await this.prisma.candidateProfile.findUnique({
+      where: { userId },
+    });
+
+    if (!profile) {
+      throw new NotFoundException('Profil candidat introuvable');
+    }
+
+    return this.prisma.experience.create({
+      data: {
+        candidateId: profile.id,
+        companyName: dto.companyName,
+        roleTitle: dto.roleTitle,
+        location: dto.location,
+        startDate: new Date(dto.startDate),
+        endDate: dto.endDate ? new Date(dto.endDate) : null,
+        description: dto.description,
+      },
+    });
+  }
+
+  async removeExperience(userId: string, experienceId: string) {
+    const profile = await this.prisma.candidateProfile.findUnique({
+      where: { userId },
+    });
+
+    if (!profile) {
+      throw new NotFoundException('Profil candidat introuvable');
+    }
+
+    return this.prisma.experience.deleteMany({
+      where: {
+        id: experienceId,
+        candidateId: profile.id,
+      },
+    });
+  }
+
+  async addEducation(userId: string, dto: CreateEducationDto) {
+    const profile = await this.prisma.candidateProfile.findUnique({
+      where: { userId },
+    });
+
+    if (!profile) {
+      throw new NotFoundException('Profil candidat introuvable');
+    }
+
+    return this.prisma.education.create({
+      data: {
+        candidateId: profile.id,
+        institution: dto.institution,
+        degree: dto.degree,
+        field: dto.field,
+        startDate: new Date(dto.startDate),
+        endDate: dto.endDate ? new Date(dto.endDate) : null,
+      },
+    });
+  }
+
+  async removeEducation(userId: string, educationId: string) {
+    const profile = await this.prisma.candidateProfile.findUnique({
+      where: { userId },
+    });
+
+    if (!profile) {
+      throw new NotFoundException('Profil candidat introuvable');
+    }
+
+    return this.prisma.education.deleteMany({
+      where: {
+        id: educationId,
+        candidateId: profile.id,
       },
     });
   }

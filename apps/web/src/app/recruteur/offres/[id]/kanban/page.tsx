@@ -15,6 +15,14 @@ import {
   Plus,
   ChevronRight,
   ChevronLeft,
+  FileText,
+  Download,
+  GraduationCap,
+  Briefcase,
+  X,
+  ExternalLink,
+  MapPin,
+  Calendar,
 } from 'lucide-react';
 
 interface KanbanColumn {
@@ -42,6 +50,7 @@ export default function RecruiterKanbanPage({
   const [token, setToken] = useState<string>('');
   const [noteModalAppId, setNoteModalAppId] = useState<string | null>(null);
   const [noteContent, setNoteContent] = useState('');
+  const [selectedCandidateApp, setSelectedCandidateApp] = useState<any | null>(null);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
 
@@ -63,17 +72,23 @@ export default function RecruiterKanbanPage({
 
   useEffect(() => {
     async function init() {
-      // Connecté par défaut avec le compte de démo Vermeg Tunisie
-      const loginRes = await fetch(`${API_URL}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: 'rh@vermeg.com', password: 'Tunisia2026!' }),
-      });
+      let authToken = typeof window !== 'undefined' ? localStorage.getItem('tunijobs_token') : null;
+      if (!authToken) {
+        const loginRes = await fetch(`${API_URL}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: 'rh@vermeg.com', password: 'Tunisia2026!' }),
+        });
 
-      if (loginRes.ok) {
-        const auth = await loginRes.json();
-        setToken(auth.accessToken);
-        loadKanban(auth.accessToken);
+        if (loginRes.ok) {
+          const auth = await loginRes.json();
+          authToken = auth.accessToken;
+        }
+      }
+
+      if (authToken) {
+        setToken(authToken);
+        loadKanban(authToken);
       } else {
         setLoading(false);
       }
@@ -95,13 +110,16 @@ export default function RecruiterKanbanPage({
 
       if (res.ok) {
         await loadKanban(token);
+        if (selectedCandidateApp && selectedCandidateApp.id === appId) {
+          setSelectedCandidateApp({ ...selectedCandidateApp, status: newStatus });
+        }
       }
     } catch (err) {
       console.error('Erreur déplacement statut:', err);
     }
   };
 
-  // Ajouter une note interne
+  // Ajouter une note d'évaluation interne
   const handleAddNote = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!noteModalAppId || !noteContent.trim()) return;
@@ -117,8 +135,8 @@ export default function RecruiterKanbanPage({
       });
 
       if (res.ok) {
-        setNoteContent('');
         setNoteModalAppId(null);
+        setNoteContent('');
         await loadKanban(token);
       }
     } catch (err) {
@@ -130,18 +148,15 @@ export default function RecruiterKanbanPage({
     return (
       <div className="py-24 text-center text-slate-400">
         <div className="animate-spin w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-3" />
-        <p className="text-sm">Chargement du pipeline Kanban...</p>
+        <p className="text-sm">Chargement du pipeline de recrutement...</p>
       </div>
     );
   }
 
   if (!data) {
     return (
-      <div className="container mx-auto px-4 py-12 text-center">
-        <h2 className="text-xl font-bold text-slate-800">Offre introuvable ou accès non autorisé</h2>
-        <Link href="/offres" className="mt-4 inline-block text-blue-600 text-xs font-bold">
-          Retour aux offres
-        </Link>
+      <div className="p-8 text-center text-slate-500">
+        Offre introuvable ou vous n'avez pas les autorisations nécessaires.
       </div>
     );
   }
@@ -152,7 +167,7 @@ export default function RecruiterKanbanPage({
       <div className="bg-white border-b px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 text-xs text-slate-500 mb-1">
-            <Link href="/offres" className="hover:text-blue-600 flex items-center">
+            <Link href="/recruteur/pipeline" className="hover:text-blue-600 flex items-center">
               <ArrowLeft className="w-3.5 h-3.5 mr-1" /> Mes offres
             </Link>
             <span>/</span>
@@ -176,7 +191,7 @@ export default function RecruiterKanbanPage({
         </div>
       </div>
 
-      {/* COLONNES KANBAN SCROLLABLES HORIZONTALEMENT */}
+      {/* COLONNES KANBAN */}
       <div className="flex-1 p-6 overflow-x-auto">
         <div className="flex gap-4 min-w-[1200px] h-[calc(100vh-170px)]">
           {COLUMNS.map((col) => {
@@ -206,115 +221,133 @@ export default function RecruiterKanbanPage({
                       Aucun candidat
                     </div>
                   ) : (
-                    apps.map((app: any) => (
-                      <div
-                        key={app.id}
-                        className="p-4 bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow transition space-y-2.5"
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div>
-                            <h4 className="font-bold text-sm text-slate-900 leading-tight">
-                              {app.candidate.firstName} {app.candidate.lastName}
-                            </h4>
-                            <p className="text-[11px] text-slate-500 mt-0.5 font-medium">
-                              {app.candidate.headline || 'Candidat qualifié'}
-                            </p>
-                          </div>
+                    apps.map((app: any) => {
+                      const cvUrl = app.candidate.cvFileUrl || '/uploads/cv/cv_yassine_trabelsi.pdf';
+                      const cvName = cvUrl.split('/').pop() || 'cv.pdf';
 
-                          {/* Score IA */}
-                          {app.aiScore && (
-                            <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-blue-100 text-blue-800 shrink-0 flex items-center gap-1">
-                              <Sparkles className="w-3 h-3 text-amber-500" />
-                              {app.aiScore}%
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Coordonnées */}
-                        <div className="space-y-1 text-[11px] text-slate-600">
-                          {app.candidate.user?.email && (
-                            <div className="flex items-center gap-1.5 truncate">
-                              <Mail className="w-3 h-3 text-slate-400 shrink-0" />
-                              <span className="truncate">{app.candidate.user.email}</span>
+                      return (
+                        <div
+                          key={app.id}
+                          className="p-4 bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow transition space-y-2.5"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <h4 className="font-bold text-sm text-slate-900 leading-tight">
+                                {app.candidate.firstName} {app.candidate.lastName}
+                              </h4>
+                              <p className="text-[11px] text-slate-500 mt-0.5 font-medium">
+                                {app.candidate.headline || 'Candidat qualifié'}
+                              </p>
                             </div>
-                          )}
-                          {app.candidate.user?.phone && (
-                            <div className="flex items-center gap-1.5">
-                              <Phone className="w-3 h-3 text-emerald-600 shrink-0" />
-                              <span>{app.candidate.user.phone}</span>
-                            </div>
-                          )}
-                        </div>
 
-                        {/* Compétences clés */}
-                        {app.candidate.skills && app.candidate.skills.length > 0 && (
-                          <div className="flex flex-wrap gap-1 pt-1">
-                            {app.candidate.skills.slice(0, 3).map((s: any, idx: number) => (
-                              <span
-                                key={idx}
-                                className="px-1.5 py-0.5 bg-slate-100 text-slate-700 rounded text-[10px]"
-                              >
-                                {s.skill.name}
+                            {/* Score IA */}
+                            {app.aiScore && (
+                              <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-blue-100 text-blue-800 shrink-0 flex items-center gap-1">
+                                <Sparkles className="w-3 h-3 text-amber-500" />
+                                {app.aiScore}%
                               </span>
-                            ))}
+                            )}
                           </div>
-                        )}
 
-                        {/* Notes internes */}
-                        {app.notes && app.notes.length > 0 && (
-                          <div className="p-2 bg-amber-50/70 border border-amber-200 rounded-lg text-[11px] text-amber-900">
-                            <span className="font-bold">📝 Note :</span> {app.notes[0].content}
+                          {/* Coordonnées */}
+                          <div className="space-y-1 text-[11px] text-slate-600">
+                            {app.candidate.user?.email && (
+                              <div className="flex items-center gap-1.5 truncate">
+                                <Mail className="w-3 h-3 text-slate-400 shrink-0" />
+                                <span className="truncate">{app.candidate.user.email}</span>
+                              </div>
+                            )}
+                            {app.candidate.user?.phone && (
+                              <div className="flex items-center gap-1.5">
+                                <Phone className="w-3 h-3 text-emerald-600 shrink-0" />
+                                <span>{app.candidate.user.phone}</span>
+                              </div>
+                            )}
                           </div>
-                        )}
 
-                        {/* Actions du pipeline (Avancer / Reculer) */}
-                        <div className="pt-2 border-t flex items-center justify-between text-xs">
+                          {/* PIÈCE JOINTE CV CANDIDAT */}
+                          <div className="pt-1">
+                            <a
+                              href={cvUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              download
+                              className="w-full py-1.5 px-2 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 rounded-lg text-[11px] font-bold flex items-center justify-between transition"
+                              title="Télécharger la pièce jointe CV"
+                            >
+                              <span className="flex items-center gap-1.5 truncate">
+                                <FileText className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                                <span className="truncate">CV : {cvName}</span>
+                              </span>
+                              <Download className="w-3.5 h-3.5 shrink-0" />
+                            </a>
+                          </div>
+
+                          {/* BOUTON PROFIL COMPLET */}
                           <button
-                            onClick={() => setNoteModalAppId(app.id)}
-                            className="text-[11px] font-semibold text-slate-500 hover:text-blue-600 flex items-center gap-1"
+                            type="button"
+                            onClick={() => setSelectedCandidateApp(app)}
+                            className="w-full py-1 text-[11px] font-semibold text-blue-600 hover:text-blue-700 bg-blue-50/60 hover:bg-blue-50 border border-blue-100 rounded-lg transition flex items-center justify-center gap-1"
                           >
-                            <MessageSquare className="w-3 h-3" />
-                            Note
+                            <User className="w-3 h-3" /> Voir le profil complet & expériences
                           </button>
 
-                          <div className="flex items-center gap-1">
-                            {col.id === 'RECEIVED' && (
-                              <button
-                                onClick={() => handleMoveStatus(app.id, 'SCREENED')}
-                                className="px-2 py-1 bg-blue-600 text-white rounded text-[10px] font-bold hover:bg-blue-700 transition"
-                              >
-                                Présélectionner →
-                              </button>
-                            )}
-                            {col.id === 'SCREENED' && (
-                              <button
-                                onClick={() => handleMoveStatus(app.id, 'INTERVIEW')}
-                                className="px-2 py-1 bg-indigo-600 text-white rounded text-[10px] font-bold hover:bg-indigo-700 transition"
-                              >
-                                Entretien →
-                              </button>
-                            )}
-                            {col.id === 'INTERVIEW' && (
-                              <button
-                                onClick={() => handleMoveStatus(app.id, 'OFFER')}
-                                className="px-2 py-1 bg-emerald-600 text-white rounded text-[10px] font-bold hover:bg-emerald-700 transition"
-                              >
-                                Offre d'embauche →
-                              </button>
-                            )}
-                            {col.id !== 'REJECTED' && (
-                              <button
-                                onClick={() => handleMoveStatus(app.id, 'REJECTED')}
-                                className="px-1.5 py-1 text-slate-400 hover:text-rose-600 rounded text-[10px]"
-                                title="Refuser le candidat"
-                              >
-                                ✕
-                              </button>
-                            )}
+                          {/* Notes internes */}
+                          {app.notes && app.notes.length > 0 && (
+                            <div className="p-2 bg-amber-50/70 border border-amber-200 rounded-lg text-[11px] text-amber-900">
+                              <span className="font-bold">📝 Note :</span> {app.notes[0].content}
+                            </div>
+                          )}
+
+                          {/* Actions du pipeline (Avancer / Reculer) */}
+                          <div className="pt-2 border-t flex items-center justify-between text-xs">
+                            <button
+                              onClick={() => setNoteModalAppId(app.id)}
+                              className="text-[11px] font-semibold text-slate-500 hover:text-blue-600 flex items-center gap-1"
+                            >
+                              <MessageSquare className="w-3 h-3" />
+                              Note
+                            </button>
+
+                            <div className="flex items-center gap-1">
+                              {col.id === 'RECEIVED' && (
+                                <button
+                                  onClick={() => handleMoveStatus(app.id, 'SCREENED')}
+                                  className="px-2 py-1 bg-blue-600 text-white rounded text-[10px] font-bold hover:bg-blue-700 transition"
+                                >
+                                  Présélectionner →
+                                </button>
+                              )}
+                              {col.id === 'SCREENED' && (
+                                <button
+                                  onClick={() => handleMoveStatus(app.id, 'INTERVIEW')}
+                                  className="px-2 py-1 bg-indigo-600 text-white rounded text-[10px] font-bold hover:bg-indigo-700 transition"
+                                >
+                                  Entretien →
+                                </button>
+                              )}
+                              {col.id === 'INTERVIEW' && (
+                                <button
+                                  onClick={() => handleMoveStatus(app.id, 'OFFER')}
+                                  className="px-2 py-1 bg-emerald-600 text-white rounded text-[10px] font-bold hover:bg-emerald-700 transition"
+                                >
+                                  Offre d'embauche →
+                                </button>
+                              )}
+                              {col.id !== 'REJECTED' && (
+                                <button
+                                  onClick={() => handleMoveStatus(app.id, 'REJECTED')}
+                                  className="px-1.5 py-1 text-slate-400 hover:text-rose-600 rounded text-[10px]"
+                                  title="Refuser le candidat"
+                                >
+                                  ✕
+                                </button>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))
+                      );
+                    })
                   )}
                 </div>
               </div>
@@ -322,6 +355,168 @@ export default function RecruiterKanbanPage({
           })}
         </div>
       </div>
+
+      {/* MODAL PROFIL COMPLET CANDIDAT & CV PIÈCE JOINTE */}
+      {selectedCandidateApp && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 sm:p-8 shadow-2xl border border-slate-200 relative animate-in fade-in zoom-in-95">
+            <button
+              onClick={() => setSelectedCandidateApp(null)}
+              className="absolute right-4 top-4 p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* En-tête du profil candidat */}
+            <div className="flex items-start gap-4 pb-4 border-b">
+              <div className="w-16 h-16 rounded-2xl bg-blue-600 text-white flex items-center justify-center text-xl font-black shrink-0">
+                {selectedCandidateApp.candidate.firstName?.[0]}
+                {selectedCandidateApp.candidate.lastName?.[0]}
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-xl font-black text-slate-900">
+                    {selectedCandidateApp.candidate.firstName} {selectedCandidateApp.candidate.lastName}
+                  </h3>
+                  {selectedCandidateApp.aiScore && (
+                    <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-blue-100 text-blue-800 flex items-center gap-1">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                      Score IA : {selectedCandidateApp.aiScore}%
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs font-bold text-blue-600">
+                  {selectedCandidateApp.candidate.headline}
+                </p>
+                <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 pt-1">
+                  <span>📧 {selectedCandidateApp.candidate.user?.email}</span>
+                  <span>📱 {selectedCandidateApp.candidate.user?.phone}</span>
+                  <span>📍 Tunis, Tunisie</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="py-4 space-y-6">
+              {/* PIÈCE JOINTE CV OFFICIEL */}
+              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="p-2.5 rounded-xl bg-rose-100 text-rose-600 font-bold text-xs">
+                    PDF
+                  </span>
+                  <div>
+                    <h4 className="font-bold text-xs text-slate-900">
+                      {selectedCandidateApp.candidate.cvFileUrl?.split('/').pop() || 'cv_yassine_trabelsi.pdf'}
+                    </h4>
+                    <p className="text-[11px] text-slate-500">
+                      Curriculum Vitae original transmis par le candidat
+                    </p>
+                  </div>
+                </div>
+
+                <a
+                  href={selectedCandidateApp.candidate.cvFileUrl || '/uploads/cv/cv_yassine_trabelsi.pdf'}
+                  target="_blank"
+                  rel="noreferrer"
+                  download
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm transition flex items-center gap-1.5"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  Télécharger le CV
+                </a>
+              </div>
+
+              {/* LETTRE DE MOTIVATION SOUMISE */}
+              {selectedCandidateApp.coverLetter && (
+                <div className="space-y-1.5">
+                  <h4 className="font-bold text-xs text-slate-900 flex items-center gap-1.5">
+                    <FileText className="w-3.5 h-3.5 text-blue-600" />
+                    Lettre de motivation transmise
+                  </h4>
+                  <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-700 whitespace-pre-line leading-relaxed">
+                    {selectedCandidateApp.coverLetter}
+                  </div>
+                </div>
+              )}
+
+              {/* EXPÉRIENCES PROFESSIONNELLES */}
+              {selectedCandidateApp.candidate.experiences && selectedCandidateApp.candidate.experiences.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="font-bold text-xs text-slate-900 flex items-center gap-1.5">
+                    <Briefcase className="w-3.5 h-3.5 text-indigo-600" />
+                    Parcours & Expériences professionnelles
+                  </h4>
+                  <div className="space-y-2">
+                    {selectedCandidateApp.candidate.experiences.map((exp: any) => (
+                      <div key={exp.id} className="p-3 bg-slate-50/70 rounded-xl border border-slate-200 text-xs">
+                        <div className="flex justify-between items-center font-bold text-slate-900">
+                          <span>{exp.roleTitle}</span>
+                          <span className="text-blue-600">{exp.companyName}</span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 mt-0.5">
+                          {new Date(exp.startDate).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })} -{' '}
+                          {exp.endDate ? new Date(exp.endDate).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' }) : 'Présent'}
+                        </p>
+                        {exp.description && <p className="text-slate-600 mt-1">{exp.description}</p>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* FORMATIONS & DIPLÔMES */}
+              {selectedCandidateApp.candidate.educations && selectedCandidateApp.candidate.educations.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="font-bold text-xs text-slate-900 flex items-center gap-1.5">
+                    <GraduationCap className="w-3.5 h-3.5 text-purple-600" />
+                    Formations académiques
+                  </h4>
+                  <div className="space-y-2">
+                    {selectedCandidateApp.candidate.educations.map((edu: any) => (
+                      <div key={edu.id} className="p-3 bg-slate-50/70 rounded-xl border border-slate-200 text-xs">
+                        <div className="font-bold text-slate-900">{edu.degree}</div>
+                        <p className="text-purple-700 font-semibold">{edu.institution} ({edu.field})</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* COMPÉTENCES ESCO */}
+              {selectedCandidateApp.candidate.skills && selectedCandidateApp.candidate.skills.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="font-bold text-xs text-slate-900 flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                    Compétences techniques indexées
+                  </h4>
+                  <div className="flex flex-wrap gap-1.5">
+                    {selectedCandidateApp.candidate.skills.map((s: any, idx: number) => (
+                      <span
+                        key={idx}
+                        className="px-2.5 py-1 bg-slate-100 border border-slate-200 text-slate-800 rounded-lg text-xs font-semibold"
+                      >
+                        {s.skill.name}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="pt-4 border-t flex justify-between items-center">
+              <span className="text-xs text-slate-500">
+                Statut actuel : <b>{selectedCandidateApp.status}</b>
+              </span>
+              <button
+                type="button"
+                onClick={() => setSelectedCandidateApp(null)}
+                className="px-5 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition"
+              >
+                Fermer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* MODAL AJOUT NOTE INTERNE */}
       {noteModalAppId && (

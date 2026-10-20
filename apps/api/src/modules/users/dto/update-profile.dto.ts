@@ -42,6 +42,63 @@ export class UpdateCandidateProfileDto {
   @IsOptional()
   @IsArray()
   preferredGovernorates?: string[];
+
+  @ApiProperty({ example: '/uploads/cv/cv_yassine_trabelsi.pdf', required: false })
+  @IsOptional()
+  @IsString()
+  cvFileUrl?: string;
+}
+
+export class CreateExperienceDto {
+  @ApiProperty({ example: 'Vermeg Tunisie' })
+  @IsString()
+  companyName: string;
+
+  @ApiProperty({ example: 'Ingénieur Full-Stack Senior' })
+  @IsString()
+  roleTitle: string;
+
+  @ApiProperty({ example: 'Les Berges du Lac 2, Tunis', required: false })
+  @IsOptional()
+  @IsString()
+  location?: string;
+
+  @ApiProperty({ example: '2022-01-01' })
+  @IsString()
+  startDate: string;
+
+  @ApiProperty({ example: '2024-06-30', required: false })
+  @IsOptional()
+  @IsString()
+  endDate?: string;
+
+  @ApiProperty({ example: 'Développement d\'architectures microservices, NestJS, React et Docker.', required: false })
+  @IsOptional()
+  @IsString()
+  description?: string;
+}
+
+export class CreateEducationDto {
+  @ApiProperty({ example: 'INSAT (Institut National des Sciences Appliquées et de Technologie)' })
+  @IsString()
+  institution: string;
+
+  @ApiProperty({ example: 'Diplôme National d\'Ingénieur' })
+  @IsString()
+  degree: string;
+
+  @ApiProperty({ example: 'Génie Logiciel et Systèmes d\'Information' })
+  @IsString()
+  field: string;
+
+  @ApiProperty({ example: '2017-09-01' })
+  @IsString()
+  startDate: string;
+
+  @ApiProperty({ example: '2022-06-30', required: false })
+  @IsOptional()
+  @IsString()
+  endDate?: string;
 }
 
 export class AddSkillDto {

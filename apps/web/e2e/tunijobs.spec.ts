@@ -143,7 +143,7 @@ Expérience: 5 ans en conception d'infrastructures hautement disponibles et séc
     await page.goto('/recruteur/pipeline');
 
     // Vérifier l'espace recruteur
-    await expect(page.locator('h1')).toContainText('Sélectionnez une offre pour ouvrir le Pipeline Kanban');
+    await expect(page.locator('h1')).toContainText('Pipeline Kanban de Recrutement');
 
     // Attendre l'affichage des offres de l'entreprise
     const kanbanLink = page.locator('a:has-text("Ouvrir le Kanban")').first();
@@ -173,6 +173,52 @@ Expérience: 5 ans en conception d'infrastructures hautement disponibles et séc
     // Cliquer sur le journal d'audit
     await page.locator('button:has-text("Journal d\'audit")').click();
     await expect(page.locator('text=Journal d\'audit des actions sensibles')).toBeVisible({ timeout: 10000 });
+  });
+
+  test('11. Page de Connexion avec comptes démo 1-clic (/connexion)', async ({ page }) => {
+    await page.goto('/connexion');
+
+    await expect(page.locator('h1')).toContainText('Connexion à TuniJobs');
+    await expect(page.locator('text=Connexion en 1 clic (Comptes Démo)')).toBeVisible();
+    await expect(page.locator('button:has-text("Candidat")')).toBeVisible();
+    await expect(page.locator('button:has-text("Recruteur")')).toBeVisible();
+    await expect(page.locator('button:has-text("Admin")')).toBeVisible();
+  });
+
+  test('12. Inscription avec toggle Candidat / Entreprise (/inscription)', async ({ page }) => {
+    await page.goto('/inscription');
+
+    await expect(page.locator('h1')).toContainText('Créer un compte TuniJobs');
+    await expect(page.locator('button:has-text("Candidat")')).toBeVisible();
+    await expect(page.locator('button:has-text("Entreprise / Recruteur")')).toBeVisible();
+    await expect(page.locator('text=Loi tunisienne n° 2004-63 (INPDP)')).toBeVisible();
+  });
+
+  test('13. Profil Candidat et Conformité INPDP Loi 2004-63 (/candidat/profil)', async ({ page }) => {
+    await page.goto('/candidat/profil');
+
+    await expect(page.locator('h1')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('text=Curriculum Vitae (Pièce Jointe Officielle)')).toBeVisible();
+    await expect(page.locator('text=Télécharger / Ouvrir')).toBeVisible();
+    await expect(page.locator('text=Protection des données (INPDP - Loi tunisienne n° 2004-63)')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('button:has-text("Exporter toutes mes données")')).toBeVisible();
+    await expect(page.locator('button:has-text("Supprimer mon compte (Droit à l\'oubli)")')).toBeVisible();
+  });
+
+  test('14. Publication d\'une nouvelle offre Recruteur (/recruteur/offres/nouvelle)', async ({ page }) => {
+    await page.goto('/recruteur/offres/nouvelle');
+
+    await expect(page.locator('h1')).toContainText('Publier une nouvelle offre d\'emploi');
+    await expect(page.locator('text=Gouvernorat (24 Régions de Tunisie)')).toBeVisible();
+    await expect(page.locator('button:has-text("Rédiger avec l\'IA TuniJobs")')).toBeVisible();
+    await expect(page.locator('button:has-text("Publier l\'offre d\'emploi")')).toBeVisible();
+  });
+
+  test('15. Module Scraper Automatique Web dans le Dashboard Admin (/admin)', async ({ page }) => {
+    await page.goto('/admin');
+
+    await expect(page.locator('text=Collecteur d\'Offres Web (Keejob / Tanitjobs)')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('button:has-text("Lancer la collecte automatique d\'offres web")')).toBeVisible();
   });
 
 });
