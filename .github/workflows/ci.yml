@@ -1,0 +1,124 @@
+name: TuniJobs CI / CD Pipeline
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  backend-test:
+    name: Backend Unit Tests (NestJS)
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_USER: tunijobs
+          POSTGRES_PASSWORD: tunijobs_secret
+          POSTGRES_DB: tunijobs_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Monorepo Dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client & Run DB Migrations
+        env:
+          DATABASE_URL: "postgresql://tunijobs:tunijobs_secret@localhost:5432/tunijobs_db?schema=public"
+        run: |
+          npm run --workspace=@tunijobs/database prisma generate
+          npm run --workspace=@tunijobs/database prisma db push
+
+      - name: Build Shared Packages
+        run: |
+          npm run --workspace=@tunijobs/shared-types build
+          npm run --workspace=@tunijobs/database build
+
+      - name: Run Backend Tests
+        env:
+          DATABASE_URL: "postgresql://tunijobs:tunijobs_secret@localhost:5432/tunijobs_db?schema=public"
+          JWT_SECRET: "tunijobs_ci_secret_key_2026"
+        run: |
+          npm run --workspace=@tunijobs/api build
+          npm run --workspace=@tunijobs/api test
+
+  ai-service-test:
+    name: AI Microservice Tests (Python FastAPI)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Python Dependencies
+        working-directory: apps/ai-service
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest
+
+      - name: Run Pytest Test Suite
+        working-directory: apps/ai-service
+        env:
+          PYTHONPATH: "."
+        run: |
+          python -m pytest tests -v
+
+  frontend-build:
+    name: Frontend Build (Next.js 14)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Monorepo Dependencies
+        run: npm ci
+
+      - name: Build Shared Packages
+        run: |
+          npm run --workspace=@tunijobs/shared-types build
+          npm run --workspace=@tunijobs/database build
+
+      - name: Build Next.js Web App
+        env:
+          NEXT_PUBLIC_API_URL: "http://localhost:4000/api/v1"
+          NEXT_PUBLIC_APP_URL: "https://tunijobs.tn"
+        run: |
+          npm run --workspace=@tunijobs/web build
