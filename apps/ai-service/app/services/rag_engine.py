@@ -76,9 +76,16 @@ class RAGEngine:
         """Indexe les documents avec des vecteurs d'embeddings 768d."""
         self.doc_embeddings = []
         for doc in self.documents:
-            text_to_embed = f"{doc['title']} {doc['company']} {doc['governorate']} {' '.join(doc['skills'])} {doc['content']}"
+            text_to_embed = f"{doc['title']} {doc['company']} {doc['governorate']} {' '.join(doc.get('skills', []))} {doc.get('content', '')}"
             emb = np.array(generate_embedding(text_to_embed), dtype=np.float32)
             self.doc_embeddings.append(emb)
+
+    def add_document(self, doc: Dict[str, Any]):
+        """Ajoute dynamiquement une nouvelle offre d'emploi ou document à l'index vectoriel RAG."""
+        self.documents.append(doc)
+        text_to_embed = f"{doc.get('title', '')} {doc.get('company', '')} {doc.get('governorate', '')} {' '.join(doc.get('skills', []))} {doc.get('content', '')}"
+        emb = np.array(generate_embedding(text_to_embed), dtype=np.float32)
+        self.doc_embeddings.append(emb)
 
     def retrieve(self, query: str, top_k: int = 3) -> List[Dict[str, Any]]:
         """

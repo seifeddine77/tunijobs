@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 
@@ -16,6 +17,9 @@ async function bootstrap() {
       crossOriginEmbedderPolicy: false,
     }),
   );
+
+  // Parsing des cookies sécurisés HttpOnly
+  app.use(cookieParser());
 
   // Préfixe global des routes API
   app.setGlobalPrefix('api/v1');

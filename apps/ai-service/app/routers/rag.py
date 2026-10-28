@@ -24,6 +24,24 @@ async def rag_query_endpoint(req: RAGQueryRequest):
     """
     return rag_engine.query(req.query, top_k=req.top_k)
 
+@router.post("/index-job")
+async def rag_index_job_endpoint(job: Dict[str, Any]):
+    """
+    Indexation temps réel : intègre immédiatement une nouvelle offre publiée ou scrapée
+    dans la base vectorielle du moteur RAG.
+    """
+    rag_engine.add_document({
+        "id": job.get("id", f"job-{len(rag_engine.documents)}"),
+        "title": job.get("title", "Offre d'emploi"),
+        "company": job.get("company", "Entreprise Partenaire"),
+        "governorate": job.get("governorate", "Tunisie"),
+        "contract": job.get("contractType", "CDI"),
+        "salary": job.get("salary", "Selon profil (TND)"),
+        "skills": job.get("skills", []),
+        "content": job.get("description", ""),
+    })
+    return {"success": True, "indexed_count": len(rag_engine.documents)}
+
 @router.post("/cover-letter")
 async def rag_cover_letter(req: RAGCoverLetterRequest):
     """

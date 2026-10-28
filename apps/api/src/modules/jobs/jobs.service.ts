@@ -204,7 +204,53 @@ export class JobsService {
   }
 
   async getNearMe(lat: number, lng: number, radiusKm: number = 30) {
-    // Calcul de distance sphérique (Haversine en kilomètres)
+    try {
+      // 1. Requête spatiale native PostGIS optimisée par index
+      const radiusMeters = radiusKm * 1000;
+      const rawResults: any[] = await this.prisma.$queryRaw`
+        SELECT 
+          j.id, j.title, j.slug, j."contractType", j."workMode", j."experienceLevel",
+          j."salaryMin", j."salaryMax", j.currency, j.status, j."governorateCode",
+          j.delegation, j.latitude, j.longitude, j."createdAt", j."companyId",
+          ROUND((ST_Distance(
+            ST_SetSRID(ST_MakePoint(j.longitude, j.latitude), 4326)::geography,
+            ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography
+          ) / 1000.0)::numeric, 1) as "distanceKm",
+          json_build_object(
+            'id', c.id,
+            'name', c.name,
+            'logoUrl', c."logoUrl",
+            'sector', c.sector
+          ) as company,
+          json_build_object(
+            'code', g.code,
+            'nameFr', g."nameFr",
+            'nameAr', g."nameAr"
+          ) as governorate
+        FROM "JobOffer" j
+        JOIN "Company" c ON j."companyId" = c.id
+        JOIN "Governorate" g ON j."governorateCode" = g.code
+        WHERE j.status = 'PUBLISHED'
+          AND ST_DWithin(
+            ST_SetSRID(ST_MakePoint(j.longitude, j.latitude), 4326)::geography,
+            ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography,
+            ${radiusMeters}
+          )
+        ORDER BY "distanceKm" ASC
+        LIMIT 50;
+      `;
+
+      if (rawResults && Array.isArray(rawResults)) {
+        return rawResults.map((r) => ({
+          ...r,
+          distanceKm: Number(r.distanceKm),
+        }));
+      }
+    } catch (spatialErr) {
+      // Fallback automatique Haversine (ex: environnement de test unitaire Jest sans PostGIS natif)
+    }
+
+    // Fallback Haversine
     const offers = await this.prisma.jobOffer.findMany({
       where: { status: OfferStatus.PUBLISHED },
       include: {
