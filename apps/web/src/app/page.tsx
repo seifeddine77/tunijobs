@@ -13,6 +13,8 @@ import {
 } from 'lucide-react';
 import { TUNISIAN_GOVERNORATES } from '@tunijobs/shared-types';
 
+import { HomeSearchBar } from '@/components/home/HomeSearchBar';
+
 export default function HomePage() {
   return (
     <div className="flex flex-col min-h-screen">
@@ -33,47 +35,27 @@ export default function HomePage() {
             Matching prédictif par intelligence artificielle, cartographie interactive en temps réel et contrats réglementaires (CDI, CDD, SIVP, Karama).
           </p>
 
-          {/* SEARCH BAR WIDGET */}
-          <div className="mt-8 p-3 bg-white rounded-2xl shadow-xl border border-slate-200 max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-12 gap-3 text-left">
-            <div className="md:col-span-5 flex items-center px-3 py-2 border rounded-xl bg-slate-50 border-slate-200">
-              <Search className="w-5 h-5 text-slate-400 mr-2 shrink-0" />
-              <input
-                type="text"
-                placeholder="Métier, mot-clé (ex: Fullstack, DevOps)"
-                className="bg-transparent w-full focus:outline-none text-sm text-slate-800 placeholder-slate-400"
-              />
-            </div>
+          {/* SEARCH BAR WIDGET INTERACTIF */}
+          <HomeSearchBar />
 
-            <div className="md:col-span-4 flex items-center px-3 py-2 border rounded-xl bg-slate-50 border-slate-200">
-              <MapPin className="w-5 h-5 text-rose-500 mr-2 shrink-0" />
-              <select className="bg-transparent w-full focus:outline-none text-sm text-slate-800">
-                <option value="">Tous les gouvernorats (24)</option>
-                {TUNISIAN_GOVERNORATES.map((gov) => (
-                  <option key={gov.code} value={gov.code}>
-                    {gov.nameFr} ({gov.nameAr})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="md:col-span-3">
-              <Link
-                href="/offres"
-                className="w-full h-full min-h-[46px] flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-xl transition shadow-md"
-              >
-                Rechercher
-              </Link>
-            </div>
-          </div>
-
-          {/* QUICK TAGS */}
+          {/* QUICK TAGS AVEC LIENS ACTIFS */}
           <div className="mt-4 flex flex-wrap justify-center items-center gap-2 text-xs text-slate-500">
             <span className="font-medium text-slate-700">Populaire :</span>
-            <span className="px-2.5 py-1 bg-white border rounded-full hover:border-blue-400 cursor-pointer">SIVP</span>
-            <span className="px-2.5 py-1 bg-white border rounded-full hover:border-blue-400 cursor-pointer">CDI Hybride</span>
-            <span className="px-2.5 py-1 bg-white border rounded-full hover:border-blue-400 cursor-pointer">NestJS / React</span>
-            <span className="px-2.5 py-1 bg-white border rounded-full hover:border-blue-400 cursor-pointer">Grand Tunis</span>
-            <span className="px-2.5 py-1 bg-white border rounded-full hover:border-blue-400 cursor-pointer">Sfax Tech</span>
+            <Link href="/offres?contractType=SIVP" className="px-2.5 py-1 bg-white border rounded-full hover:border-blue-400 hover:text-blue-600 transition">
+              SIVP
+            </Link>
+            <Link href="/offres?workMode=HYBRID" className="px-2.5 py-1 bg-white border rounded-full hover:border-blue-400 hover:text-blue-600 transition">
+              CDI Hybride
+            </Link>
+            <Link href="/offres?q=NestJS" className="px-2.5 py-1 bg-white border rounded-full hover:border-blue-400 hover:text-blue-600 transition">
+              NestJS / React
+            </Link>
+            <Link href="/offres?governorate=11" className="px-2.5 py-1 bg-white border rounded-full hover:border-blue-400 hover:text-blue-600 transition">
+              Grand Tunis
+            </Link>
+            <Link href="/offres?governorate=61" className="px-2.5 py-1 bg-white border rounded-full hover:border-blue-400 hover:text-blue-600 transition">
+              Sfax Tech
+            </Link>
           </div>
         </div>
       </section>

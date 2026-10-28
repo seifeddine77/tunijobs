@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { JobFilters, FilterState } from '@/components/jobs/JobFilters';
 import { JobCard } from '@/components/jobs/JobCard';
 import { TunisiaMap } from '@/components/map/TunisiaMap';
@@ -23,8 +24,28 @@ const INITIAL_FILTERS: FilterState = {
   minSalary: 0,
 };
 
-export default function OffresPage() {
+function OffresContent() {
+  const searchParams = useSearchParams();
   const [filters, setFilters] = useState<FilterState>(INITIAL_FILTERS);
+
+  // Synchronisation avec les query params de l'URL (?governorate=11&contractType=SIVP...)
+  useEffect(() => {
+    const q = searchParams.get('q') || '';
+    const gov = searchParams.get('governorate') || '';
+    const contract = searchParams.get('contractType') || '';
+    const mode = searchParams.get('workMode') || '';
+    const salary = Number(searchParams.get('minSalary')) || 0;
+
+    if (q || gov || contract || mode || salary) {
+      setFilters({
+        q,
+        governorate: gov,
+        contractType: contract,
+        workMode: mode,
+        minSalary: salary,
+      });
+    }
+  }, [searchParams]);
   const [viewMode, setViewMode] = useState<'split' | 'list' | 'map'>('split');
   const [jobs, setJobs] = useState<any[]>([]);
   const [jobsGeoJson, setJobsGeoJson] = useState<any>(null);
@@ -369,5 +390,20 @@ export default function OffresPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function OffresPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="py-24 text-center text-slate-400">
+          <div className="animate-spin w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-3" />
+          <p className="text-xs">Chargement des offres d'emploi...</p>
+        </div>
+      }
+    >
+      <OffresContent />
+    </Suspense>
   );
 }

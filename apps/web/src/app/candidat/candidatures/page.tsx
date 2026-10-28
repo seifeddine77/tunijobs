@@ -25,17 +25,23 @@ export default function CandidatApplicationsPage() {
     async function loadApplications() {
       setLoading(true);
       try {
-        // Authentification automatique compte démo candidat
-        const loginRes = await fetch(`${API_URL}/auth/login`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: 'candidat@tunijobs.tn', password: 'Tunisia2026!' }),
-        });
+        let token = typeof window !== 'undefined' ? localStorage.getItem('tunijobs_token') : null;
+        if (!token) {
+          const loginRes = await fetch(`${API_URL}/auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: 'candidat@tunijobs.tn', password: 'Tunisia2026!' }),
+          });
 
-        if (loginRes.ok) {
-          const { accessToken } = await loginRes.json();
+          if (loginRes.ok) {
+            const auth = await loginRes.json();
+            token = auth.accessToken;
+          }
+        }
+
+        if (token) {
           const res = await fetch(`${API_URL}/candidat/applications`, {
-            headers: { Authorization: `Bearer ${accessToken}` },
+            headers: { Authorization: `Bearer ${token}` },
           });
 
           if (res.ok) {

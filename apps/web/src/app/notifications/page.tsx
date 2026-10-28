@@ -13,17 +13,22 @@ export default function NotificationsPage() {
   const loadNotifications = async () => {
     setLoading(true);
     try {
-      // Connecté avec le compte candidat démo
-      const loginRes = await fetch(`${API_URL}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: 'candidat@tunijobs.tn', password: 'Tunisia2026!' }),
-      });
+      let token = typeof window !== 'undefined' ? localStorage.getItem('tunijobs_token') : null;
+      if (!token) {
+        const loginRes = await fetch(`${API_URL}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: 'candidat@tunijobs.tn', password: 'Tunisia2026!' }),
+        });
+        if (loginRes.ok) {
+          const auth = await loginRes.json();
+          token = auth.accessToken;
+        }
+      }
 
-      if (loginRes.ok) {
-        const { accessToken } = await loginRes.json();
+      if (token) {
         const res = await fetch(`${API_URL}/notifications`, {
-          headers: { Authorization: `Bearer ${accessToken}` },
+          headers: { Authorization: `Bearer ${token}` },
         });
 
         if (res.ok) {
@@ -44,17 +49,23 @@ export default function NotificationsPage() {
 
   const handleMarkAllRead = async () => {
     try {
-      const loginRes = await fetch(`${API_URL}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: 'candidat@tunijobs.tn', password: 'Tunisia2026!' }),
-      });
+      let token = typeof window !== 'undefined' ? localStorage.getItem('tunijobs_token') : null;
+      if (!token) {
+        const loginRes = await fetch(`${API_URL}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: 'candidat@tunijobs.tn', password: 'Tunisia2026!' }),
+        });
+        if (loginRes.ok) {
+          const auth = await loginRes.json();
+          token = auth.accessToken;
+        }
+      }
 
-      if (loginRes.ok) {
-        const { accessToken } = await loginRes.json();
+      if (token) {
         await fetch(`${API_URL}/notifications/read-all`, {
           method: 'PATCH',
-          headers: { Authorization: `Bearer ${accessToken}` },
+          headers: { Authorization: `Bearer ${token}` },
         });
         await loadNotifications();
       }

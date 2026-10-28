@@ -259,6 +259,10 @@ model AuditLog {
   details   Json?
   ipAddress String?
   createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([userId])
+  @@index([action])
 }
 
 model Notification {
@@ -270,4 +274,7 @@ model Notification {
   isRead    Boolean  @default(false)
   link      String?
   createdAt DateTime @default(now())
+
+  @@index([userId, isRead])
+  @@index([createdAt])
 }

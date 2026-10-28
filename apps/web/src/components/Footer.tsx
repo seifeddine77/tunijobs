@@ -30,9 +30,9 @@ export function Footer() {
         <div>
           <h4 className="text-white font-semibold mb-3">Recruteurs</h4>
           <ul className="space-y-2 text-sm">
-            <li><Link href="/recruteur/publier" className="hover:text-white transition">Publier une offre</Link></li>
+            <li><Link href="/recruteur/offres/nouvelle" className="hover:text-white transition">Publier une offre</Link></li>
             <li><Link href="/recruteur/pipeline" className="hover:text-white transition">Pipeline Kanban & Scoring IA</Link></li>
-            <li><Link href="/entreprises" className="hover:text-white transition">Annuaire des entreprises RNE</Link></li>
+            <li><Link href="/inscription" className="hover:text-white transition">Inscription Entreprise (RNE)</Link></li>
           </ul>
         </div>
 
@@ -42,7 +42,7 @@ export function Footer() {
             <li><Link href="/offres?governorate=11" className="hover:text-white transition">Grand Tunis (Tunis, Ariana, Ben Arous)</Link></li>
             <li><Link href="/offres?governorate=51" className="hover:text-white transition">Sahel (Sousse, Monastir, Mahdia)</Link></li>
             <li><Link href="/offres?governorate=61" className="hover:text-white transition">Sfax & Sud</Link></li>
-            <li><Link href="/offres?governorate=17" className="hover:text-white transition">Bizerte & Nord</Link></li>
+            <li><Link href="/offres?governorate=23" className="hover:text-white transition">Bizerte & Nord</Link></li>
           </ul>
         </div>
       </div>
